@@ -97,6 +97,33 @@ Example MCP registration:
 
 Use an MCP gateway or client-side allowlist when a consumer only needs a subset of the 89 tools. In particular, keep mutations and administrative reads away from consumers that only need entry discovery.
 
+## Running from source
+
+The repository includes `uv.lock` so source deployments can use a reproducible dependency set without installing the package globally.
+
+```bash
+uv sync --frozen
+NEXTERM_BASE_URL=https://nexterm.example.com \
+NEXTERM_API_KEY_FILE=/run/secrets/nexterm-api-key \
+uv run --frozen nexterm-mcp
+```
+
+Mutations remain disabled in this example. Set `NEXTERM_MUTATIONS_ENABLED=true` only on an MCP surface where state-changing Nexterm tools are intentionally permitted.
+
+A stdio gateway can launch the checkout directly as well:
+
+```json
+{
+  "command": "uv",
+  "args": ["run", "--frozen", "--directory", "/path/to/nexterm-mcp", "nexterm-mcp"],
+  "env": {
+    "NEXTERM_BASE_URL": "https://nexterm.example.com",
+    "NEXTERM_API_KEY_FILE": "/run/secrets/nexterm-api-key",
+    "NEXTERM_MUTATIONS_ENABLED": "false"
+  }
+}
+```
+
 ## Entry model
 
 Entry create/update supports the currently validated Nexterm `v1.2.2-BETA` connection fields rather than an arbitrary `config` object:
@@ -121,6 +148,15 @@ The adapter deliberately relies on Nexterm's own authorization checks. A Nexterm
 
 ## Development
 
+With `uv`:
+
+```bash
+uv sync --frozen --extra test
+uv run --frozen --extra test pytest
+```
+
+A conventional virtual environment remains supported:
+
 ```bash
 python -m venv .venv
 . .venv/bin/activate
@@ -131,7 +167,7 @@ pytest
 Build a wheel with:
 
 ```bash
-python -m pip wheel --no-deps --wheel-dir dist .
+uv build
 ```
 
 ## License
