@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nexterm-mcp"
+version = "0.1.0"
+description = "A deliberately bounded Model Context Protocol server for managing Nexterm through its supported REST API."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Ronald de Wit" }]
+keywords = ["nexterm", "mcp", "model-context-protocol", "ssh", "server-management"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: System :: Systems Administration",
+]
+dependencies = [
+  "mcp>=1.12.0,<2.0",
+  "pydantic>=2.10,<3.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.3,<9"]
+
+[project.scripts]
+nexterm-mcp = "nexterm_mcp:main"
+
+[project.urls]
+Repository = "https://github.com/X1pheR/nexterm-mcp"
+Issues = "https://github.com/X1pheR/nexterm-mcp/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nexterm_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
