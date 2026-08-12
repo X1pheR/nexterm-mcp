@@ -1,41 +1,67 @@
 # nexterm-mcp
 
-A deliberately bounded Model Context Protocol server for managing [Nexterm](https://github.com/gnmyt/Nexterm) through its supported REST API.
+A typed Model Context Protocol server for broad management of [Nexterm](https://github.com/gnmyt/Nexterm) through its supported REST API.
 
 This community project is not affiliated with or endorsed by the Nexterm project.
 
-## Why this exists
+## Design
 
-Nexterm exposes a broad authenticated API. Agent workflows usually need a much smaller surface: inspect existing entries, folders and identity metadata, then create or update selected server entries without exposing credentials or arbitrary API access.
+`nexterm-mcp` maps Nexterm resources and actions to explicit MCP tools instead of exposing a generic HTTP request primitive. This keeps tool inputs discoverable, validates common fields before a request is sent, provides MCP read/destructive annotations, and keeps the Nexterm API key outside model-visible arguments.
 
-`nexterm-mcp` intentionally provides that smaller boundary:
+Version `0.2.0` provides 89 MCP tools and is contract-tested against Nexterm `v1.2.2-BETA` routes. The original `0.1.0` entry/folder/identity tool names remain available.
 
-- entry discovery and detail reads;
-- folder and identity metadata discovery;
-- bounded entry create, update and delete operations;
-- API-key authentication from a private file;
-- mutations disabled by default;
-- defensive credential-field removal from API responses;
-- no generic HTTP/request tool;
-- no identity credential retrieval or identity mutation;
-- no Nexterm API-key management.
+The adapter intentionally does **not** mirror every Nexterm endpoint. Endpoints that require plaintext credential material, return newly generated credentials, mutate authentication/authorization, or represent interactive transports are excluded rather than weakened into an unsafe generic tool.
 
-The initial contract is tested against Nexterm `v1.2.2-BETA` API routes.
+## Coverage
 
-## Tool surface
+| Area | Coverage | Notes |
+|---|---|---|
+| Service/account status | Supported | `nexterm_status` verifies API-key authentication through `/api/accounts/me` and reads the service version. |
+| Entries | Broad | List, recent, get, create, update, delete, duplicate, typed SSH import, reposition and Wake-on-LAN. |
+| Folders | Full resource CRUD | List, create, update/move and delete. |
+| Identities | Metadata read only | Credential-bearing identity create/update/delete/move is intentionally excluded. |
+| Tags | Full | List, CRUD, assign/unassign and per-entry tag discovery. |
+| Organizations | Resource/settings + read | List/get/CRUD, member reads, member-permission reads and session settings. Membership and permission mutations are excluded. |
+| Scripts | Broad | List/search, all/source discovery, get, CRUD and reposition. Script content is model-visible. |
+| Snippets | Broad | List/source discovery, get, CRUD and reposition. Command content is model-visible. |
+| Themes | Full resource management | List/get/CSS, CRUD and active-theme selection. |
+| Sources | Full | List/get/validate/CRUD and synchronization actions. |
+| Monitoring | Full | Overview, global settings and server/integration history for Nexterm's `1h`, `6h` and `24h` ranges. |
+| Audit | Broad | Log query, metadata and organization audit settings. Binary recording download is excluded. |
+| Backup | Broad safe subset | File listing/deletion, settings, storage, provider deletion, backup listing/create/restore. Provider create/update is excluded because it accepts plaintext passwords. |
+| Proxmox integrations | Safe subset | Read, delete, sync and entry start/stop/shutdown. Create/update is excluded because Nexterm requires a plaintext password. |
+| Engines | Metadata read only | Token-generating create/regenerate operations are intentionally excluded. |
 
-| Tool | Behavior |
-|---|---|
-| `nexterm_status` | Verify authenticated API access and report adapter status. |
-| `nexterm_list_entries` | List accessible entries. |
-| `nexterm_get_entry` | Read one entry by ID. |
-| `nexterm_list_identities` | List identity metadata for selecting existing identity IDs. |
-| `nexterm_list_folders` | List folders for selecting existing folder IDs. |
-| `nexterm_create_entry` | Create a server entry using supported bounded fields. |
-| `nexterm_update_entry` | Update supported fields on an existing entry. |
-| `nexterm_delete_entry` | Permanently delete an entry. |
+### Explicit exclusions
 
-The last three tools fail closed unless mutations are enabled in the MCP server environment.
+The following Nexterm API areas are not exposed as normal MCP tools in `0.2.0`:
+
+- generic/raw HTTP or arbitrary Nexterm API requests;
+- Nexterm API-key management;
+- account password, TOTP, passkey and authentication-provider management;
+- user and permission administration;
+- organization invitations, member removal, permission mutation, invitation response and leave actions;
+- identity credential create/update/delete/move;
+- Proxmox integration create/update because the API requires a plaintext password;
+- backup-provider create/update because the API may require a plaintext password;
+- engine registration/token generation or token regeneration;
+- audit recording binary download;
+- interactive terminal, connection, SFTP, WebSocket, share and session transports;
+- Nexterm AI operations.
+
+These are security or protocol boundaries, not missing raw escape hatches. A future credential-mutating tool should use a non-model-visible delivery mechanism such as private local files rather than accepting passwords or private keys as MCP arguments.
+
+## Security defaults
+
+- The API key is read from a private local file and never accepted as a tool argument.
+- API-key files must be regular non-symlink files with no group or other permissions.
+- Common credential-shaped response fields are removed recursively before MCP output is returned.
+- HTTP error bodies are not echoed into MCP errors.
+- All mutation tools fail closed unless `NEXTERM_MUTATIONS_ENABLED=true`.
+- Delete, restore, stop and shutdown operations that can cause irreversible or disruptive effects are marked destructive in MCP annotations.
+- There is no raw request tool.
+
+See [SECURITY.md](SECURITY.md) for the full security model.
 
 ## Requirements
 
@@ -48,9 +74,9 @@ The last three tools fail closed unless mutations are enabled in the MCP server 
 | Variable | Required | Default | Meaning |
 |---|---:|---|---|
 | `NEXTERM_BASE_URL` | yes | - | Nexterm base URL, for example `https://nexterm.example.com`. |
-| `NEXTERM_API_KEY_FILE` | yes | - | Absolute path to a mode-`0600` file containing the Nexterm API key. |
+| `NEXTERM_API_KEY_FILE` | yes | - | Absolute path to a private mode-`0600` file containing the Nexterm API key. |
 | `NEXTERM_TIMEOUT_SECONDS` | no | `15` | HTTP timeout, maximum 120 seconds. |
-| `NEXTERM_MUTATIONS_ENABLED` | no | `false` | Enables entry create/update/delete tools when set to `true`. |
+| `NEXTERM_MUTATIONS_ENABLED` | no | `false` | Enables all non-read-only tools when set to `true`. |
 
 Example MCP registration:
 
@@ -69,21 +95,29 @@ Example MCP registration:
 }
 ```
 
+Use an MCP gateway or client-side allowlist when a consumer only needs a subset of the 89 tools. In particular, keep mutations and administrative reads away from consumers that only need entry discovery.
+
 ## Entry model
 
-Create and update tools expose a stable subset of Nexterm's server-entry fields:
+Entry create/update supports the currently validated Nexterm `v1.2.2-BETA` connection fields rather than an arbitrary `config` object:
 
-- `name`
-- `protocol`: `ssh`, `telnet`, `rdp`, `vnc`, `sftp`, `ftp`, `ftps`
-- `ip`
-- `port`
-- `identity_ids`
-- `folder_id`
-- `organization_id`
-- `monitoring_enabled`
-- `icon`
+- `name`, `entry_type`, `renderer`, `icon`;
+- `protocol`: `ssh`, `telnet`, `rdp`, `vnc`, `sftp`, `ftp`, `ftps`, `demo`;
+- `ip`, `port`, `keyboard_layout`;
+- `monitoring_enabled`;
+- `node_name`, `vmid`;
+- `rdp_security`;
+- `jump_host_ids`;
+- `mac_address`, `wake_on_lan_enabled`, `wol_broadcast_address`;
+- `identity_ids`, `folder_id`, `organization_id`.
 
-The MCP adapter translates these fields to Nexterm's API payload shape. It does not expose an arbitrary `config` object.
+Partial entry updates first read the current entry and merge changed connection fields into the existing Nexterm `config` object. This preserves fields that a compatible Nexterm release may already store but that the caller did not ask to change.
+
+## Compatibility
+
+The API contract currently follows Nexterm `v1.2.2-BETA`. Nexterm is still evolving, so a newer release may add or change routes or validation fields. `nexterm_status` reports the server version returned by Nexterm, while tests pin the adapter's known route contract.
+
+The adapter deliberately relies on Nexterm's own authorization checks. A Nexterm API key acts with the permissions of its linked Nexterm account; the MCP server does not invent a second authorization model.
 
 ## Development
 
@@ -94,9 +128,11 @@ pip install -e '.[test]'
 pytest
 ```
 
-## Security
+Build a wheel with:
 
-See [SECURITY.md](SECURITY.md). In particular, keep mutation tools behind an administrative MCP policy boundary and treat the Nexterm API key as an administrative credential according to the permissions of its account.
+```bash
+python -m pip wheel --no-deps --wheel-dir dist .
+```
 
 ## License
 

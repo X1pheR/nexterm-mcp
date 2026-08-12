@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from .config import Settings
@@ -20,10 +21,21 @@ SENSITIVE_KEYS = {
     "privatekey",
     "private_key",
     "token",
+    "accesstoken",
+    "access_token",
+    "refreshtoken",
+    "refresh_token",
     "apikey",
     "api_key",
+    "authorization",
+    "cookie",
     "secret",
+    "credentials",
 }
+
+
+def _normalized_key(key: Any) -> str:
+    return str(key).replace("-", "_").lower()
 
 
 def sanitize(value: Any) -> Any:
@@ -31,7 +43,7 @@ def sanitize(value: Any) -> Any:
         return {
             key: sanitize(item)
             for key, item in value.items()
-            if str(key).replace("-", "_").lower() not in SENSITIVE_KEYS
+            if _normalized_key(key) not in SENSITIVE_KEYS
         }
     if isinstance(value, list):
         return [sanitize(item) for item in value]
@@ -42,8 +54,18 @@ class NextermClient:
     def __init__(self, settings: Settings):
         self.settings = settings
 
-    def request(self, method: str, path: str, payload: dict[str, Any] | None = None) -> Any:
+    def request(
+        self,
+        method: str,
+        path: str,
+        payload: dict[str, Any] | None = None,
+        query: dict[str, Any] | None = None,
+    ) -> Any:
         url = f"{self.settings.base_url}{path}"
+        if query:
+            filtered = {key: value for key, value in query.items() if value is not None}
+            if filtered:
+                url = f"{url}?{urlencode(filtered, doseq=True)}"
         body = None if payload is None else json.dumps(payload).encode("utf-8")
         request = Request(
             url,
@@ -53,7 +75,7 @@ class NextermClient:
                 "Authorization": f"Bearer {self.settings.read_api_key()}",
                 "Accept": "application/json",
                 "Content-Type": "application/json",
-                "User-Agent": "nexterm-mcp/0.1.0",
+                "User-Agent": "nexterm-mcp/0.2.0",
             },
         )
         try:
@@ -79,18 +101,3 @@ class NextermClient:
 
     def get_entry(self, entry_id: int) -> Any:
         return self.request("GET", f"/api/entries/{entry_id}")
-
-    def list_identities(self) -> Any:
-        return self.request("GET", "/api/identities/list")
-
-    def list_folders(self) -> Any:
-        return self.request("GET", "/api/folders/list")
-
-    def create_entry(self, payload: dict[str, Any]) -> Any:
-        return self.request("PUT", "/api/entries", payload)
-
-    def update_entry(self, entry_id: int, payload: dict[str, Any]) -> Any:
-        return self.request("PATCH", f"/api/entries/{entry_id}", payload)
-
-    def delete_entry(self, entry_id: int) -> Any:
-        return self.request("DELETE", f"/api/entries/{entry_id}")
