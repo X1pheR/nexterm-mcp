@@ -38,4 +38,4 @@ Scripts, snippets and theme/source content are application content rather than c
 
 ## Reporting a vulnerability
 
-Use GitHub private vulnerability reporting when available. Do not open a public issue containing API keys, passwords, private keys, passphrases, backup credentials or other secrets.
+Use GitHub private vulnerability reporting for sensitive reports. If that form is unavailable, open a public issue only to request a private contact route and include no exploit details, credentials, tokens, private keys or other sensitive material.
