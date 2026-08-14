@@ -24,7 +24,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=8.3,<9"]
+test = ["pytest>=9.0.3,<10"]
 
 [project.scripts]
 nexterm-mcp = "nexterm_mcp:main"

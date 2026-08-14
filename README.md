@@ -8,7 +8,7 @@ This community project is not affiliated with or endorsed by the Nexterm project
 
 `nexterm-mcp` maps Nexterm resources and actions to explicit MCP tools instead of exposing a generic HTTP request primitive. This keeps tool inputs discoverable, validates common fields before a request is sent, provides MCP read/destructive annotations, and keeps the Nexterm API key outside model-visible arguments.
 
-Version `0.2.0` provides 89 MCP tools and is contract-tested against Nexterm `v1.2.2-BETA` routes. The original `0.1.0` entry/folder/identity tool names remain available.
+Version `0.2.0` provides 89 MCP tools and is contract-tested against Nexterm `v1.2.2-BETA` routes. The original `0.1.0` entry/folder/identity tool names remain available. See the complete [`docs/tools.md`](docs/tools.md) reference for access classification, destructive semantics, inputs and purpose.
 
 The adapter intentionally does **not** mirror every Nexterm endpoint. Endpoints that require plaintext credential material, return newly generated credentials, mutate authentication/authorization, or represent interactive transports are excluded rather than weakened into an unsafe generic tool.
 
@@ -97,6 +97,18 @@ Example MCP registration:
 
 Use an MCP gateway or client-side allowlist when a consumer only needs a subset of the 89 tools. In particular, keep mutations and administrative reads away from consumers that only need entry discovery.
 
+## Running a release
+
+Accepted releases publish a reproducible wheel and `SHA256SUMS`. For `v0.2.0`:
+
+```bash
+uvx --python 3.12 \
+  --from https://github.com/X1pheR/nexterm-mcp/releases/download/v0.2.0/nexterm_mcp-0.2.0-py3-none-any.whl \
+  nexterm-mcp
+```
+
+Provide the same environment variables shown above. Release tags are the stable source snapshot; the wheel is the runtime artifact.
+
 ## Running from source
 
 The repository includes `uv.lock` so source deployments can use a reproducible dependency set without installing the package globally.
@@ -126,19 +138,7 @@ A stdio gateway can launch the checkout directly as well:
 
 ## Entry model
 
-Entry create/update supports the currently validated Nexterm `v1.2.2-BETA` connection fields rather than an arbitrary `config` object:
-
-- `name`, `entry_type`, `renderer`, `icon`;
-- `protocol`: `ssh`, `telnet`, `rdp`, `vnc`, `sftp`, `ftp`, `ftps`, `demo`;
-- `ip`, `port`, `keyboard_layout`;
-- `monitoring_enabled`;
-- `node_name`, `vmid`;
-- `rdp_security`;
-- `jump_host_ids`;
-- `mac_address`, `wake_on_lan_enabled`, `wol_broadcast_address`;
-- `identity_ids`, `folder_id`, `organization_id`.
-
-Partial entry updates first read the current entry and merge changed connection fields into the existing Nexterm `config` object. This preserves fields that a compatible Nexterm release may already store but that the caller did not ask to change.
+Entry create/update uses typed connection fields rather than an arbitrary `config` object; the exact inputs are listed in [`docs/tools.md`](docs/tools.md). Partial updates first read the current entry and merge only requested connection fields into the existing Nexterm `config` object. This preserves fields that a compatible Nexterm release may already store but that the caller did not ask to change.
 
 ## Compatibility
 
