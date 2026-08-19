@@ -38,4 +38,10 @@ Scripts, snippets and theme/source content are application content rather than c
 
 ## Reporting a vulnerability
 
-Use GitHub private vulnerability reporting for sensitive reports. If that form is unavailable, open a public issue only to request a private contact route and include no exploit details, credentials, tokens, private keys or other sensitive material.
+Use [GitHub private vulnerability reporting](https://github.com/X1pheR/nexterm-mcp/security/advisories/new) for sensitive reports. If that form is unexpectedly unavailable, open a public issue only to request a private contact route and include no exploit details, credentials, tokens, private keys or other sensitive material.
+
+## Dependency and code security
+
+The repository uses locked Python dependencies, full-SHA-pinned GitHub Actions, frozen CI/package verification, Dependabot and OpenSSF Scorecard. Public-release acceptance also requires applicable GitHub-native dependency alerts, secret scanning with push protection and CodeQL code scanning to be reviewed and green before a release is published.
+
+These scanners supplement rather than replace source/history review and the project test suite.
