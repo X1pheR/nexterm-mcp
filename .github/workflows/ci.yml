@@ -20,19 +20,5 @@ jobs:
         with:
           version: "0.12.4"
           python-version: "3.12"
-      - name: Sync locked dependencies
-        run: uv sync --frozen --extra test
-      - name: Verify package version
-        run: |
-          uv run --frozen python - <<'PY'
-          import importlib.metadata
-          import tomllib
-
-          project = tomllib.load(open("pyproject.toml", "rb"))["project"]["version"]
-          installed = importlib.metadata.version("nexterm-mcp")
-          assert installed == project, (installed, project)
-          PY
-      - name: Run tests
-        run: uv run --frozen pytest
-      - name: Build wheel
-        run: uv build --wheel --out-dir dist
+      - name: Run canonical local verifier
+        run: ./scripts/verify.sh
