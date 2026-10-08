@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "name": "Nexterm MCP",
+  "category": "Infrastructure",
+  "kind": "mcp-server"
+}
