@@ -75,7 +75,7 @@ class NextermClient:
                 "Authorization": f"Bearer {self.settings.read_api_key()}",
                 "Accept": "application/json",
                 "Content-Type": "application/json",
-                "User-Agent": "nexterm-mcp/0.2.0",
+                "User-Agent": "nexterm-mcp/0.2.1",
             },
         )
         try:

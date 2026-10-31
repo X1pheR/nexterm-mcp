@@ -4,6 +4,12 @@ This file records user-visible changes to `nexterm-mcp`. Security fixes with a p
 
 ## Unreleased
 
+## 0.2.1 - 2026-10-31
+
+- Refreshed locked Python dependencies: MCP 1.30.0, PyJWT 2.15.0, Pydantic 2.14.1 and certifi 2026.10.18; retained STDIO server transport.
+- Updated pinned GitHub Actions, security scanning and release tooling.
+- Aligned the Nexterm API User-Agent with this release version.
+
 - Added public OpenSSF Scorecard reporting and protected-branch repository controls.
 - Future releases publish signed GitHub/Sigstore build provenance alongside checksums and reproducible wheel artifacts.
 - Added explicit contribution and private vulnerability-reporting routes.
