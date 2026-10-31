@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nexterm-mcp"
-version = "0.2.0"
+version = "0.2.1"
 description = "A typed Model Context Protocol server for broad Nexterm management through its supported REST API."
 readme = "README.md"
 requires-python = ">=3.12"
